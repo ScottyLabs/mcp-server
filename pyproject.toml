@@ -7,7 +7,9 @@ authors = [
     { name = "Parinthapat Pengpun", email = "parinzee@protonmail.com" }
 ]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "fastmcp>=2.12.3",
+]
 
 [project.scripts]
 mcp-server = "mcp_server:main"
