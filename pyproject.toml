@@ -6,9 +6,10 @@ readme = "README.md"
 authors = [
     { name = "Parinthapat Pengpun", email = "parinzee@protonmail.com" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4.0"
 dependencies = [
     "fastmcp>=2.12.3",
+    "aiohttp (>=3.12.15,<4.0.0)",
 ]
 
 [project.scripts]
