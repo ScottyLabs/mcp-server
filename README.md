@@ -175,23 +175,8 @@ All dining tools return formatted Markdown with:
 - Consecutive day grouping for hours
 
 ## Author
-
-**Parinthapat Pengpun**
-- Email: parinzee@protonmail.com
+AI Team at ScottyLabs
 
 ## Version
 
 Current version: `0.1.0`
-
-## License
-
-See project repository for license information.
-
-## Contributing
-
-This is a ScottyLabs project for Carnegie Mellon University services. Contributions should maintain the modular architecture and follow the existing code style.
-
-## API Credits
-
-- CMU Dining API by ScottyLabs
-- CMU Maps API by ScottyLabs (Rust implementation)
