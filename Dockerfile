@@ -19,5 +19,7 @@ RUN pip install --no-cache-dir .
 # Set PYTHONPATH (optional, for clarity)
 ENV PYTHONPATH=/app/src
 
+EXPOSE 8000
+
 # Run your MCP server
-CMD ["mcp-server"]
+CMD ["python", "src/mcp_server/__init__.py"]
