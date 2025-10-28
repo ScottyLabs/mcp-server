@@ -33,6 +33,7 @@ Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modu
 ### Prerequisites
 - Python 3.11 or higher
 - [uv](https://github.com/astral-sh/uv) or [Poetry](https://python-poetry.org/) package manager
+- Docker (optional, for containerized deployment)
 
 ### Using UV (recommended)
 ```bash
@@ -52,11 +53,23 @@ poetry install
 poetry shell
 ```
 
+### Using Docker
+```bash
+# Build the Docker image
+docker build -t mcp-server .
+
+# Run the container
+docker run -p 8000:8000 mcp-server
+
+# Or use docker-compose (if you create a docker-compose.yml)
+docker-compose up
+```
+
 ## Usage
 
 ### Running the Server
 
-The server runs on HTTP transport by default on `0.0.0.0:8000`:
+The server runs on HTTP transport by default on `0.0.0.0:8001`:
 
 ```bash
 # Run as module
@@ -109,6 +122,15 @@ The main server configuration is in `src/mcp_server/__init__.py`:
 - Host: `0.0.0.0`
 - Port: `8000`
 - Transport: `http` (streamable HTTP transport)
+
+### CORS Configuration
+CORS (Cross-Origin Resource Sharing) is enabled by default in `src/mcp_server/core/app.py`:
+- **Allow Origins**: `*` (all origins - adjust for production)
+- **Allow Methods**: All HTTP methods including OPTIONS
+- **Allow Headers**: All headers
+- **Allow Credentials**: Enabled
+
+This configuration enables the server to handle OPTIONS preflight requests and accept requests from any origin. For production deployments, consider restricting `allow_origins` to specific domains.
 
 ## Development
 
