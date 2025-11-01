@@ -47,17 +47,17 @@ async def _get_courses(course_ids: list[str] | None = None, schedules: bool = Fa
 async def _get_course(course_id: str) -> dict:
     return await _get_http(f"/course/{course_id}")
 
-async def _get_all_courses() -> list[dict]:
-    return await _get_http("/courses/all")
+# async def _get_all_courses() -> list[dict]:
+#     return await _get_http("/courses/all")
 
 async def _get_requisites(course_id: str) -> dict:
     return await _get_http(f"/courses/requisites/{course_id}")
 
 async def _search_courses(query: str) -> list[dict]:
-    return await _get_http("/courses/search/", params={"query": query})
+    return await _get_http("/courses", params={"courseID": query})
 
-async def _post_search_courses(user_token: str, query: str) -> dict:
-    return await _post_http("/courses/search/", data={"token": user_token, "query": query})
+# async def _post_search_courses(user_token: str, query: str) -> dict:
+#     return await _post_http("/courses/search/", data={"token": user_token, "query": query})
 
 async def _get_instructors() -> list[dict]:
     return await _get_http("/instructors")
@@ -67,56 +67,62 @@ async def _get_schedules() -> list[dict]:
 
 # --- MCP Tools ---
 @app.tool()
-async def get_course_tool(course_id: str) -> dict:
+async def fetch_course_by_id(course_id: str) -> dict:
+    """Fetch a CMU course by its ID (exact match, e.g. "15-122" or "15-213")."""
     return await _get_course(course_id)
 
 @app.tool()
-async def get_courses_tool(course_ids: list[str] | None = None, schedules: bool = False) -> list[dict]:
+async def fetch_courses_by_ids(course_ids: list[str] | None = None, schedules: bool = False) -> list[dict]:
+    """Fetch a list of CMU courses by their IDs (exact match, e.g. ["15-122", "15-213"])."""
     return await _get_courses(course_ids=course_ids, schedules=schedules)
 
-@app.tool()
-async def post_courses_tool(user_token: str, course_ids: list[str] | None = None) -> dict:
-    data = {"token": user_token}
-    if course_ids:
-        data["courseID"] = course_ids
-    return await _post_http("/courses", data=data)
+# @app.tool()
+# async def post_courses_tool(user_token: str, course_ids: list[str] | None = None) -> dict:
+#     data = {"token": user_token}
+#     if course_ids:
+#         data["courseID"] = course_ids
+#     return await _post_http("/courses", data=data)
+
+# @app.tool()
+# async def get_all_courses_tool() -> list[dict]:
+#     return await _get_all_courses()
 
 @app.tool()
-async def get_all_courses_tool() -> list[dict]:
-    return await _get_all_courses()
-
-@app.tool()
-async def get_requisites_tool(course_id: str) -> dict:
+async def fetch_course_requisites(course_id: str) -> dict:
+    """Fetch the requisites for a CMU course by its ID (exact match)."""
     return await _get_requisites(course_id)
 
 @app.tool()
-async def search_courses_tool(query: str) -> list[dict]:
+async def search_courses_by_query(query: str) -> list[dict]:
+    """Search for CMU courses by name or description (e.g. "programming" or "database")."""
     return await _search_courses(query)
 
-@app.tool()
-async def post_search_courses_tool(user_token: str, query: str) -> dict:
-    return await _post_search_courses(user_token, query)
+# @app.tool()
+# async def post_search_courses_tool(user_token: str, query: str) -> dict:
+#     return await _post_search_courses(user_token, query)
 
-@app.tool()
-async def get_instructors_tool() -> list[dict]:
-    return await _get_instructors()
+# @app.tool()
+# async def get_instructors_tool() -> list[dict]:
+#     return await _get_instructors()
 
-@app.tool()
-async def get_schedules_tool() -> list[dict]:
-    return await _get_schedules()
+# @app.tool()
+# async def get_schedules_tool() -> list[dict]:
+#     return await _get_schedules()
 
 # --- MCP Tools for per-course helpers ---
 @app.tool()
-async def get_instructors_for_course(course_id: str) -> list[str]:
+async def fetch_course_instructors(course_id: str) -> list[str]:
+    """Fetch all instructors for a CMU course by its ID (exact match)."""
     return await _get_instructors_for_course(course_id)
 
 @app.tool()
-async def get_schedules_for_course(course_id: str) -> list[dict]:
+async def fetch_course_schedules(course_id: str) -> list[dict]:
+    """Fetch all schedules/times for a CMU course by its ID (exact match)."""
     return await _get_schedules_for_course(course_id)
 
-@app.tool()
-async def list_tools() -> list[str]:
-    return list(app.tools.keys())
+# @app.tool()
+# async def list_tools() -> list[str]:
+#     return list(app.tools.keys())
 
 
 # --- Run server ---
