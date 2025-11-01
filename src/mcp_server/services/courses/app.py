@@ -47,23 +47,46 @@ async def _get_courses(course_ids: list[str] | None = None, schedules: bool = Fa
 async def _get_course(course_id: str) -> dict:
     return await _get_http(f"/course/{course_id}")
 
-# async def _get_all_courses() -> list[dict]:
-#     return await _get_http("/courses/all")
-
 async def _get_requisites(course_id: str) -> dict:
     return await _get_http(f"/courses/requisites/{course_id}")
 
 async def _search_courses(query: str) -> list[dict]:
     return await _get_http("/courses", params={"courseID": query})
 
-# async def _post_search_courses(user_token: str, query: str) -> dict:
-#     return await _post_http("/courses/search/", data={"token": user_token, "query": query})
+# async def _get_instructors() -> list[dict]:
+#     return await _get_http("/instructors")
 
-async def _get_instructors() -> list[dict]:
-    return await _get_http("/instructors")
+# async def _get_schedules() -> list[dict]:
+#     return await _get_http("/schedules")
 
-async def _get_schedules() -> list[dict]:
-    return await _get_http("/schedules")
+async def _get_geneds(school: str | None = None, user_token: str | None = None) -> list[dict]:
+    """
+    Fetch general education requirements. Supports optional school query param (e.g., "SCS").
+    If user_token provided, does POST, else GET.
+    """
+    if user_token and user_token.strip():
+        data = {"token": user_token}
+        if school:
+            data["school"] = school
+        return await _post_http("/geneds", data=data)
+    else:
+        params = {}
+        if school:
+            params["school"] = school
+        return await _get_http("/geneds", params=params)
+
+async def _get_geneds_for_department(department: str, school: str | None = None, user_token: str | None = None) -> list[dict]:
+    """
+    Fetch geneds filtered by department and optional school.
+    """
+    geneds = await _get_geneds(school=school, user_token=user_token)
+    allowed_geneds = []
+    for g in geneds:
+        departments = g.get("departments", [])
+        if not departments or department in departments:
+            allowed_geneds.append(g)
+    return allowed_geneds
+
 
 # --- MCP Tools ---
 @app.tool()
@@ -76,17 +99,6 @@ async def fetch_courses_by_ids(course_ids: list[str] | None = None, schedules: b
     """Fetch a list of CMU courses by their IDs (exact match, e.g. ["15-122", "15-213"])."""
     return await _get_courses(course_ids=course_ids, schedules=schedules)
 
-# @app.tool()
-# async def post_courses_tool(user_token: str, course_ids: list[str] | None = None) -> dict:
-#     data = {"token": user_token}
-#     if course_ids:
-#         data["courseID"] = course_ids
-#     return await _post_http("/courses", data=data)
-
-# @app.tool()
-# async def get_all_courses_tool() -> list[dict]:
-#     return await _get_all_courses()
-
 @app.tool()
 async def fetch_course_requisites(course_id: str) -> dict:
     """Fetch the requisites for a CMU course by its ID (exact match)."""
@@ -96,18 +108,6 @@ async def fetch_course_requisites(course_id: str) -> dict:
 async def search_courses_by_query(query: str) -> list[dict]:
     """Search for CMU courses by name or description (e.g. "programming" or "database")."""
     return await _search_courses(query)
-
-# @app.tool()
-# async def post_search_courses_tool(user_token: str, query: str) -> dict:
-#     return await _post_search_courses(user_token, query)
-
-# @app.tool()
-# async def get_instructors_tool() -> list[dict]:
-#     return await _get_instructors()
-
-# @app.tool()
-# async def get_schedules_tool() -> list[dict]:
-#     return await _get_schedules()
 
 # --- MCP Tools for per-course helpers ---
 @app.tool()
@@ -120,9 +120,21 @@ async def fetch_course_schedules(course_id: str) -> list[dict]:
     """Fetch all schedules/times for a CMU course by its ID (exact match)."""
     return await _get_schedules_for_course(course_id)
 
-# @app.tool()
-# async def list_tools() -> list[str]:
-#     return list(app.tools.keys())
+
+@app.tool()
+async def fetch_geneds_tool(school: str | None = None, user_token: str | None = None) -> list[dict]:
+    """
+    Fetch all general education requirements, optionally filtered by school.
+    """
+    return await _get_geneds(school=school, user_token=user_token)
+
+@app.tool()
+async def fetch_geneds_for_department_tool(department: str, school: str | None = None, user_token: str | None = None) -> list[dict]:
+    """
+    Fetch general education requirements allowed for a specific department,
+    optionally filtered by school and requiring a user token.
+    """
+    return await _get_geneds_for_department(department=department, school=school, user_token=user_token)
 
 
 # --- Run server ---
