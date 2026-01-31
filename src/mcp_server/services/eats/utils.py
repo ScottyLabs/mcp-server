@@ -9,10 +9,11 @@ async def fetch_locations() -> List[Dict[str, Any]]:
     """Fetch all dining locations from the API."""
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(f"{API_BASE_URL}/locations")
+            response = await client.get(API_BASE_URL)
             response.raise_for_status()
             data = response.json()
-            return data.get("locations", [])
+            # API returns array directly
+            return data if isinstance(data, list) else []
         except Exception as e:
             raise Exception(f"Failed to fetch dining locations: {str(e)}")
 
@@ -37,38 +38,43 @@ def get_current_day_and_time() -> tuple[int, int, int]:
     return day, now.hour, now.minute
 
 def is_location_open_now(location_times: List[Dict[str, Any]]) -> bool:
-    """Check if a location is currently open based on its times."""
-    day, hour, minute = get_current_day_and_time()
-    current_minutes = day * 1440 + hour * 60 + minute
+    """Check if a location is currently open based on its times.
+    
+    Times are now Unix timestamps in milliseconds.
+    """
+    if not location_times:
+        return False
+    
+    now = datetime.now()
+    current_timestamp_ms = int(now.timestamp() * 1000)
     
     for time_slot in location_times:
-        start = time_slot.get("start", {})
-        end = time_slot.get("end", {})
+        start_ms = time_slot.get("start", 0)
+        end_ms = time_slot.get("end", 0)
         
-        start_minutes = (start.get("day", 0) * 1440 + 
-                        start.get("hour", 0) * 60 + 
-                        start.get("minute", 0))
-        end_minutes = (end.get("day", 0) * 1440 + 
-                      end.get("hour", 0) * 60 + 
-                      end.get("minute", 0))
-        
-        if start_minutes <= current_minutes < end_minutes:
+        if start_ms <= current_timestamp_ms < end_ms:
             return True
     
     return False
 
 def format_times_for_display(location_times: List[Dict[str, Any]]) -> List[str]:
-    """Format location times for human-readable display."""
-    days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    """Format location times for human-readable display.
+    
+    Times are now Unix timestamps in milliseconds.
+    """
     formatted_times = []
 
     for time_slot in location_times:
-        start = time_slot.get("start", {})
-        end = time_slot.get("end", {})
-
-        day_name = days[start.get("day", 0)]
-        start_time = f"{start.get('hour', 0):02d}:{start.get('minute', 0):02d}"
-        end_time = f"{end.get('hour', 0):02d}:{end.get('minute', 0):02d}"
+        start_ms = time_slot.get("start", 0)
+        end_ms = time_slot.get("end", 0)
+        
+        # Convert milliseconds to datetime
+        start_dt = datetime.fromtimestamp(start_ms / 1000)
+        end_dt = datetime.fromtimestamp(end_ms / 1000)
+        
+        day_name = start_dt.strftime("%A")
+        start_time = start_dt.strftime("%H:%M")
+        end_time = end_dt.strftime("%H:%M")
 
         formatted_times.append(f"{day_name}: {start_time} - {end_time}")
 
@@ -86,7 +92,10 @@ def format_time_12_hour(hour: int, minute: int) -> str:
         return f"{hour - 12}:{minute:02d} PM"
 
 def group_consecutive_days(location_times: List[Dict[str, Any]]) -> str:
-    """Group consecutive days with same hours for compact display."""
+    """Group consecutive days with same hours for compact display.
+    
+    Times are now Unix timestamps in milliseconds.
+    """
     if not location_times:
         return "Hours not available"
 
@@ -95,14 +104,20 @@ def group_consecutive_days(location_times: List[Dict[str, Any]]) -> str:
 
     # Group times by their start-end pattern
     for time_slot in location_times:
-        start = time_slot.get("start", {})
-        end = time_slot.get("end", {})
+        start_ms = time_slot.get("start", 0)
+        end_ms = time_slot.get("end", 0)
+        
+        # Convert milliseconds to datetime
+        start_dt = datetime.fromtimestamp(start_ms / 1000)
+        end_dt = datetime.fromtimestamp(end_ms / 1000)
 
-        start_time = format_time_12_hour(start.get('hour', 0), start.get('minute', 0))
-        end_time = format_time_12_hour(end.get('hour', 0), end.get('minute', 0))
+        start_time = format_time_12_hour(start_dt.hour, start_dt.minute)
+        end_time = format_time_12_hour(end_dt.hour, end_dt.minute)
         time_range = f"{start_time} - {end_time}"
 
-        day_idx = start.get("day", 0)
+        # Get day index (0=Sunday, 1=Monday, etc.)
+        # Python weekday: 0=Monday, so we convert
+        day_idx = (start_dt.weekday() + 1) % 7
 
         if time_range not in day_groups:
             day_groups[time_range] = []

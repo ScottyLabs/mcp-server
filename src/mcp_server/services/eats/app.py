@@ -4,16 +4,11 @@ FastMCP Server for CMU Dining Locations
 Provides tools to query Carnegie Mellon University dining locations, hours, and availability.
 """
 
-import asyncio
-import httpx
-from typing import List, Dict, Any
+from datetime import datetime, timedelta
 from fastmcp import FastMCP
 
-from mcp_server.services.eats.constants import API_BASE_URL
-from mcp_server.services.eats.models import DiningLocation
 from mcp_server.services.eats.utils import (
-    fetch_locations, parse_location_data, is_location_open_now,
-    get_current_day_and_time, format_times_for_display,
+    fetch_locations, is_location_open_now, format_times_for_display,
     format_locations_list_markdown, format_location_markdown
 )
 
@@ -42,19 +37,19 @@ async def search_dining_locations(name_query: str) -> str:
 
     Returns locations that match the search query formatted as clean markdown.
     """
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{API_BASE_URL}/location/{name_query}")
-            response.raise_for_status()
-            data = response.json()
+    # Fetch all locations and filter locally since the new API returns all locations
+    raw_locations = await fetch_locations()
+    
+    # Filter locations by name query
+    matching_locations = [
+        loc for loc in raw_locations 
+        if name_query.lower() in loc.get("name", "").lower()
+    ]
+    
+    if not matching_locations:
+        return f"# Search Results for '{name_query}'\n\nNo dining locations found matching '{name_query}'."
 
-            raw_locations = data.get("locations", [])
-            if not raw_locations:
-                return f"# Search Results for '{name_query}'\n\nNo dining locations found matching '{name_query}'."
-
-            return format_locations_list_markdown(raw_locations, f"Search Results for '{name_query}'")
-        except Exception as e:
-            raise Exception(f"Failed to search dining locations: {str(e)}")
+    return format_locations_list_markdown(matching_locations, f"Search Results for '{name_query}'")
 
 @mcp.tool()
 async def get_locations_open_now() -> str:
@@ -64,21 +59,18 @@ async def get_locations_open_now() -> str:
     Returns a formatted list of locations that are open right now based on current day and time.
     Locations are grouped by cuisine type for easy browsing.
     """
-    day, hour, minute = get_current_day_and_time()
+    raw_locations = await fetch_locations()
+    
+    # Filter to only open locations
+    open_locations = [
+        loc for loc in raw_locations 
+        if is_location_open_now(loc.get("times", []))
+    ]
+    
+    if not open_locations:
+        return "# Currently Open Locations\n\nNo dining locations are currently open."
 
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{API_BASE_URL}/locations/time/{day}/{hour}/{minute}")
-            response.raise_for_status()
-            data = response.json()
-
-            raw_locations = data.get("locations", [])
-            if not raw_locations:
-                return "# Currently Open Locations\n\nNo dining locations are currently open."
-
-            return format_locations_list_markdown(raw_locations, "Currently Open Locations")
-        except Exception as e:
-            raise Exception(f"Failed to get currently open locations: {str(e)}")
+    return format_locations_list_markdown(open_locations, "Currently Open Locations")
 
 @mcp.tool()
 async def get_locations_open_at_time(day: int, hour: int, minute: int = 0) -> str:
@@ -103,19 +95,34 @@ async def get_locations_open_at_time(day: int, hour: int, minute: int = 0) -> st
     days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     time_str = f"{hour:02d}:{minute:02d}"
 
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{API_BASE_URL}/locations/time/{day}/{hour}/{minute}")
-            response.raise_for_status()
-            data = response.json()
+    raw_locations = await fetch_locations()
+    
+    # Calculate target timestamp for the specified day/time
+    now = datetime.now()
+    # Convert API day format (0=Sunday) to Python weekday (0=Monday)
+    python_weekday = (day - 1) % 7 if day > 0 else 6
+    days_ahead = python_weekday - now.weekday()
+    if days_ahead < 0:
+        days_ahead += 7
+    target_date = now + timedelta(days=days_ahead)
+    target_dt = target_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    target_timestamp_ms = int(target_dt.timestamp() * 1000)
+    
+    # Filter locations open at the specified time
+    open_locations = []
+    for loc in raw_locations:
+        times = loc.get("times", [])
+        for time_slot in times:
+            start_ms = time_slot.get("start", 0)
+            end_ms = time_slot.get("end", 0)
+            if start_ms <= target_timestamp_ms < end_ms:
+                open_locations.append(loc)
+                break
+    
+    if not open_locations:
+        return f"# Locations Open on {days[day]} at {time_str}\n\nNo dining locations are open at this time."
 
-            raw_locations = data.get("locations", [])
-            if not raw_locations:
-                return f"# Locations Open on {days[day]} at {time_str}\n\nNo dining locations are open at this time."
-
-            return format_locations_list_markdown(raw_locations, f"Locations Open on {days[day]} at {time_str}")
-        except Exception as e:
-            raise Exception(f"Failed to get locations open at specified time: {str(e)}")
+    return format_locations_list_markdown(open_locations, f"Locations Open on {days[day]} at {time_str}")
 
 @mcp.tool()
 async def get_location_hours(location_name: str) -> str:
