@@ -11,9 +11,6 @@
         forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in
     {
-        nixosModules.default = import ./nix/module.nix { inherit self; };
-        nixosModules.mcp-server = self.nixosModules.default;
-
         devShells = forAllSystems (system:
             let pkgs = nixpkgs.legacyPackages.${system};
             in {
