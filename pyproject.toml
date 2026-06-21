@@ -1,0 +1,20 @@
+[project]
+name = "mcp-server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Parinthapat Pengpun", email = "parinzee@protonmail.com" }
+]
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "fastmcp>=2.12.3",
+    "aiohttp (>=3.12.15,<4.0.0)",
+]
+
+[project.scripts]
+mcp-server = "mcp_server.main:main"
+
+[build-system]
+requires = ["uv_build>=0.8.19,<0.10.0"]
+build-backend = "uv_build"
