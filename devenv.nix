@@ -25,8 +25,8 @@
 
   processes.api = {
     exec = "secretspec run --profile dev -- uv run python src/mcp_server/main.py";
-    env.PORT = "5000";
-    ready.http.get = { port = 5000; path = "/health"; };
+    env.PORT = "5050";
+    ready.http.get = { port = 5050; path = "/health"; };
   };
 
   enterShell = ''

@@ -28,7 +28,7 @@ def main():
 
     # Run the composed MCP server
     # main_mcp.run() - attempt deployment
-    port = int(os.environ.get("PORT", "5000"))
+    port = int(os.environ.get("PORT", "5050"))
     main_mcp.run(transport="http", host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
