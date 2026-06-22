@@ -6,7 +6,7 @@
   scottylabs = {
     enable = true;
     project.name = "mcp-server";
-    secrets.enable = false;
+    secrets.enable = true;
 
     kennel.services.api = {
       customDomain = "api.mcp-server.scottylabs.org";
@@ -29,7 +29,7 @@
     ready.http.get = { port = 5000; path = "/health"; };
   };
 
-    enterShell = ''
+  enterShell = ''
     [ -f .env ] || touch .env
   '';
 
