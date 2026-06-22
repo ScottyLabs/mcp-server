@@ -149,7 +149,6 @@ activemq-data/
 
 # Environments
 .env
-.envrc
 .venv
 env/
 venv/
@@ -214,3 +213,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml

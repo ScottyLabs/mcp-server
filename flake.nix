@@ -21,9 +21,7 @@
             let
                 pkgs = nixpkgs.legacyPackages.${system};
                 python = pkgs.python311;
-            in
-            {
-                default = python.pkgs.buildPythonApplication {
+                mcpServer = python.pkgs.buildPythonApplication {
                     pname = "mcp-server";
                     version = "0.1.0";
                     pyproject = true;
@@ -32,6 +30,10 @@
                     propagatedBuildInputs = with python.pkgs; [ fastmcp aiohttp ];
                     pythonImportsCheck = [ "mcp_server" ];
                 };
+            in
+            {
+                api = mcpServer;
+                default = mcpServer;
             }
         );
 

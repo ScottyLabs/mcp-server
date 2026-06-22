@@ -4,6 +4,8 @@ Main MCP Server - Composed FastMCP Server
 Combines CMU Dining and Maps services into a single runnable MCP server.
 """
 
+import os
+
 from fastmcp import FastMCP
 from mcp_server.core.app import main_mcp
 from mcp_server.services.eats.app import mcp as eats_mcp
@@ -17,7 +19,9 @@ def main():
     main_mcp.mount(courses_mcp, prefix="courses")
 
     # Run the composed MCP server
-    main_mcp.run()
+    # main_mcp.run() - attempt deployment
+    port = int(os.environ.get("PORT", "5000"))
+    main_mcp.run(transport="http", host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()
