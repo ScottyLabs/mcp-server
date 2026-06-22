@@ -224,3 +224,29 @@ devenv.local.yaml
 
 # pre-commit
 .pre-commit-config.yaml
+
+
+# Nix / devenv
+.devenv/
+.devenv.flake.nix
+.pre-commit-config.yaml
+result
+result-*
+
+# AI
+.mcp.json
+.claude
+
+# direnv
+.direnv/
+
+# Rust
+target/
+.cargo/
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+rustc-ice-*.txt
