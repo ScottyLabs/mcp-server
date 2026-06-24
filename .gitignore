@@ -225,20 +225,13 @@ devenv.local.yaml
 # pre-commit
 .pre-commit-config.yaml
 
-
-# Nix / devenv
-.devenv/
-.devenv.flake.nix
-.pre-commit-config.yaml
+# Nix
 result
 result-*
 
 # AI
 .mcp.json
 .claude
-
-# direnv
-.direnv/
 
 # Rust
 target/
