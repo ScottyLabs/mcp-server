@@ -4,12 +4,22 @@ Main MCP Server - Composed FastMCP Server
 Combines CMU Dining and Maps services into a single runnable MCP server.
 """
 
+from http import HTTPStatus
+import os
+
 from fastmcp import FastMCP
 from mcp_server.core.app import main_mcp
 from mcp_server.services.eats.app import mcp as eats_mcp
 from mcp_server.services.maps.app import app as maps_mcp
 from mcp_server.services.courses.app import app as courses_mcp
 from mcp_server.services.guide.app import app as guide_mcp
+
+from starlette.responses import JSONResponse
+
+@main_mcp.custom_route("/health", methods=["GET"])
+async def health(request) -> JSONResponse:
+    return JSONResponse(content={"status": "ok"}, status_code=HTTPStatus.OK)
+
 
 def main():
     # Mount the subservers with prefixes to avoid naming conflicts
@@ -19,7 +29,9 @@ def main():
     main_mcp.mount(guide_mcp, prefix="guide")
 
     # Run the composed MCP server
-    main_mcp.run()
+    # main_mcp.run() - attempt deployment
+    port = int(os.environ.get("PORT", "5050"))
+    main_mcp.run(transport="http", host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()

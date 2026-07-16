@@ -5,6 +5,7 @@ A unified Model Context Protocol (MCP) server providing access to ScottyLabs's P
 ## Overview
 
 This project provides MCP tools for:
+
 - **CMU Dining (Eats)**: Query dining locations, hours, menus, and real-time availability
 - **CMU Maps**: Search buildings, get directions, and calculate distances on campus
 
@@ -13,6 +14,7 @@ Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modu
 ## Features
 
 ### CMU Dining Service (`eats`)
+
 - Get all dining locations with details (cuisine, hours, location)
 - Search locations by name
 - Find locations currently open
@@ -23,6 +25,7 @@ Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modu
 - Online ordering availability indicators
 
 ### CMU Maps Service (`maps`)
+
 - Search buildings and locations by name
 - Get paths between two locations
 - Calculate distances between locations
@@ -31,11 +34,13 @@ Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modu
 ## Installation
 
 ### Prerequisites
+
 - Python 3.11 or higher
 - [uv](https://github.com/astral-sh/uv) or [Poetry](https://python-poetry.org/) package manager
 - Docker (optional, for containerized deployment)
 
 ### Using UV (recommended)
+
 ```bash
 # Install dependencies
 uv sync
@@ -45,6 +50,7 @@ source .venv/bin/activate
 ```
 
 ### Using Poetry
+
 ```bash
 # Install dependencies
 poetry install
@@ -54,6 +60,7 @@ poetry shell
 ```
 
 ### Using Docker
+
 ```bash
 # Build the Docker image
 docker build -t mcp-server .
@@ -94,6 +101,7 @@ python src/mcp_server/services/maps/app.py
 ### Available Tools
 
 #### Dining Tools (prefix: `eats`)
+
 - `get_all_dining_locations()`: List all CMU dining locations
 - `search_dining_locations(name_query)`: Search by name
 - `get_locations_open_now()`: Find currently open locations
@@ -102,6 +110,7 @@ python src/mcp_server/services/maps/app.py
 - `get_locations_by_cuisine(cuisine_query)`: Find locations by cuisine type
 
 #### Maps Tools (prefix: `maps`)
+
 - `search_buildings(query)`: Search for buildings/locations
 - `get_path(start_id, end_id)`: Get path between two locations
 - `list_possible_locations(query)`: List location name matches
@@ -110,21 +119,27 @@ python src/mcp_server/services/maps/app.py
 ## Configuration
 
 ### API Endpoints
+
 - **Dining API**: `https://dining.apis.scottylabs.org`
 - **Maps API**: `https://rust.api.maps.scottylabs.org`
 
 Endpoints are configured in:
+
 - `src/mcp_server/services/eats/constants.py`
 - `src/mcp_server/services/maps/app.py`
 
 ### Server Configuration
+
 The main server configuration is in `src/mcp_server/__init__.py`:
+
 - Host: `0.0.0.0`
 - Port: `8000`
 - Transport: `http` (streamable HTTP transport)
 
 ### CORS Configuration
+
 CORS (Cross-Origin Resource Sharing) is enabled by default in `src/mcp_server/core/app.py`:
+
 - **Allow Origins**: `*` (all origins - adjust for production)
 - **Allow Methods**: All HTTP methods including OPTIONS
 - **Allow Headers**: All headers
@@ -137,11 +152,13 @@ This configuration enables the server to handle OPTIONS preflight requests and a
 ### Architecture
 
 The project uses a compositional architecture:
+
 1. **Base App** (`core/app.py`): Defines the main FastMCP instance
-2. **Services** (`services/`): Individual MCP services with their own tools
-3. **Main Composition** (`main.py`): Mounts services with prefixes to avoid conflicts
+1. **Services** (`services/`): Individual MCP services with their own tools
+1. **Main Composition** (`main.py`): Mounts services with prefixes to avoid conflicts
 
 This allows:
+
 - Independent development and testing of services
 - Namespace isolation via prefixes
 - Easy addition of new services
@@ -150,8 +167,8 @@ This allows:
 ### Adding a New Service
 
 1. Create a new directory under `src/mcp_server/services/`
-2. Implement your service with FastMCP tools
-3. Mount it in `src/mcp_server/main.py`:
+1. Implement your service with FastMCP tools
+1. Mount it in `src/mcp_server/main.py`:
 
 ```python
 from mcp_server.services.your_service.app import mcp as your_mcp
@@ -162,6 +179,7 @@ main_mcp.mount(your_mcp, prefix="your_service")
 ### Dependencies
 
 Core dependencies:
+
 - `fastmcp>=2.12.3`: MCP framework
 - `aiohttp>=3.12.15`: Async HTTP client
 - `httpx`: HTTP client for async requests
@@ -170,6 +188,7 @@ Core dependencies:
 ## Data Models
 
 ### DiningLocation
+
 - `concept_id`: Unique identifier
 - `name`: Location name
 - `short_description`: Brief description
@@ -181,6 +200,7 @@ Core dependencies:
 - `current_status`: Open/closed status
 
 ### TimeSlot
+
 - `day`: Day of week (0=Sunday, 6=Saturday)
 - `start_hour`: Opening hour (24-hour format)
 - `start_minute`: Opening minute
@@ -190,6 +210,7 @@ Core dependencies:
 ## Output Format
 
 All dining tools return formatted Markdown with:
+
 - Status indicators (=� open, =4 closed)
 - Online ordering indicators (=�)
 - Grouped by cuisine type
@@ -197,6 +218,7 @@ All dining tools return formatted Markdown with:
 - Consecutive day grouping for hours
 
 ## Author
+
 AI Team at ScottyLabs
 
 ## Version
