@@ -24,7 +24,6 @@
       supportedSystems = [
         "x86_64-linux"
         "aarch64-linux"
-        # "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in
@@ -34,10 +33,14 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          api = (scottylabs.mkLib pkgs).buildPythonService {
+          venv = (scottylabs.mkLib pkgs).buildPythonService {
             src = ./.;
             python = pkgs.python313;
           };
+          api = pkgs.runCommand "mcp-server-api" { meta.mainProgram = "mcp-server"; } ''
+            mkdir -p $out/bin
+            ln -s ${venv}/bin/mcp-server $out/bin/mcp-server
+          '';
         in
         {
           inherit api;
