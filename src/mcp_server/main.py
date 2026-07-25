@@ -16,7 +16,7 @@ from mcp_server.services.guide.app import app as guide_mcp
 
 from starlette.responses import JSONResponse
 
-@main_mcp.custom_route("/health", methods=["GET"])
+@main_mcp.custom_route("/api/health", methods=["GET"])
 async def health(request) -> JSONResponse:
     return JSONResponse(content={"status": "ok"}, status_code=HTTPStatus.OK)
 
