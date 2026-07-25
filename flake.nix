@@ -24,7 +24,7 @@
       supportedSystems = [
         "x86_64-linux"
         "aarch64-linux"
-        "aarch64-darwin"
+        # "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     in
@@ -36,7 +36,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
           api = (scottylabs.mkLib pkgs).buildPythonService {
             src = ./.;
-            python = pkgs.python311;
+            python = pkgs.python313;
           };
         in
         {
