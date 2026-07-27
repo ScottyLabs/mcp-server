@@ -768,11 +768,11 @@
         "uv2nix": "uv2nix"
       },
       "locked": {
-        "lastModified": 1785016905,
-        "narHash": "sha256-Pe1MisfEGOdRd57U2/Bmmhlq4AgpfbaYwrSZoAzBopc=",
+        "lastModified": 1785044272,
+        "narHash": "sha256-comx1giRG8dQ6ocTheJhZIMce3nMJBOT6VEpqyp98gs=",
         "ref": "refs/heads/main",
-        "rev": "22fc04399681b77630c1226b90b9f32fb7c0fff8",
-        "revCount": 351,
+        "rev": "0793095e418d99167fc31597f0e494cb5fadb81e",
+        "revCount": 352,
         "type": "git",
         "url": "https://codeberg.org/ScottyLabs/kennel"
       },
