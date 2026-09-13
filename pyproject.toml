@@ -12,6 +12,11 @@ dependencies = [
     "pydantic>=2.11.9,<3.0.0",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+]
+
 [project.scripts]
 mcp-server = "mcp_server.main:main"
 
