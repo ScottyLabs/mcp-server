@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import math
 import re
-from typing import Any
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -20,7 +19,18 @@ from mcp_server.services.bus.constants import (
     PREDICTIONS_PATH,
     REQUEST_TIMEOUT_SECONDS,
 )
-from mcp_server.services.bus.models import PredictionResponse, RouteGroup
+from mcp_server.services.bus.models import (
+    Arrival,
+    AvailableRoute,
+    KnownStop,
+    NextBusMatch,
+    PredictionResponse,
+    RetrievalMetadata,
+    RouteGroup,
+    SearchMatch,
+    SerializedRouteGroup,
+    StopMetadata,
+)
 
 
 class BusBackendError(RuntimeError):
@@ -32,7 +42,7 @@ class FetchedPredictions:
     """One validated backend response and its MCP retrieval timestamp."""
 
     predictions: dict[str, list[RouteGroup]]
-    retrieved_at: dict[str, str]
+    retrieved_at: RetrievalMetadata
 
 
 def predictions_url() -> str:
@@ -41,7 +51,7 @@ def predictions_url() -> str:
     return f"{API_BASE_URL}{PREDICTIONS_PATH}"
 
 
-def retrieval_metadata(instant: datetime | None = None) -> dict[str, str]:
+def retrieval_metadata(instant: datetime | None = None) -> RetrievalMetadata:
     """Build UTC-canonical and Pittsburgh-local retrieval metadata."""
 
     retrieved = instant or datetime.now(timezone.utc)
@@ -104,19 +114,19 @@ async def fetch_predictions(
             await http_client.aclose()
 
 
-def stop_metadata(stop_id: str) -> dict[str, Any]:
+def stop_metadata(stop_id: str) -> StopMetadata:
     """Return an independent, human-readable known-stop record."""
 
     return {"stop_id": stop_id, **deepcopy(KNOWN_STOPS[stop_id])}
 
 
-def known_stops_by_id() -> dict[str, dict[str, Any]]:
+def known_stops_by_id() -> dict[str, KnownStop]:
     """Return all known-stop metadata keyed by stop ID."""
 
     return deepcopy(KNOWN_STOPS)
 
 
-def known_stops_list() -> list[dict[str, Any]]:
+def known_stops_list() -> list[StopMetadata]:
     """Return known-stop metadata as a stable list."""
 
     return [stop_metadata(stop_id) for stop_id in KNOWN_STOPS]
@@ -134,7 +144,7 @@ def normalize_route_identifier(route: str) -> str:
     return re.sub(r"[\s-]+", "", route).upper()
 
 
-def serialize_route_group(group: RouteGroup) -> dict[str, Any]:
+def serialize_route_group(group: RouteGroup) -> SerializedRouteGroup:
     """Serialize a validated group and add human-friendly minutes."""
 
     return {
@@ -154,7 +164,7 @@ def serialize_route_group(group: RouteGroup) -> dict[str, Any]:
 
 def serialize_predictions(
     predictions: dict[str, list[RouteGroup]],
-) -> dict[str, list[dict[str, Any]]]:
+) -> dict[str, list[SerializedRouteGroup]]:
     """Serialize predictions while always including both configured stops."""
 
     serialized = {
@@ -167,7 +177,7 @@ def serialize_predictions(
 
 
 def has_arrivals(predictions: dict[str, list[RouteGroup]]) -> bool:
-    """Return whether any route group contains an arrival."""
+    """Return whether any predicted bus arrivals are available."""
 
     return any(
         group.arrivals
@@ -178,7 +188,7 @@ def has_arrivals(predictions: dict[str, list[RouteGroup]]) -> bool:
 
 def available_predictions(
     predictions: dict[str, list[RouteGroup]],
-) -> dict[str, list[dict[str, str]]]:
+) -> dict[str, list[AvailableRoute]]:
     """Summarize currently available routes and destinations by known stop."""
 
     return {
@@ -197,7 +207,7 @@ def earliest_match(
     route: str | None = None,
     destination: str | None = None,
     allowed_routes: set[str] | None = None,
-) -> dict[str, Any] | None:
+) -> NextBusMatch | None:
     """Return the earliest arrival matching route/destination constraints."""
 
     normalized_route = normalize_route_identifier(route) if route else None
@@ -205,7 +215,7 @@ def earliest_match(
     normalized_allowed = {
         normalize_route_identifier(item) for item in allowed_routes or set()
     }
-    candidates: list[tuple[int, RouteGroup, Any]] = []
+    candidates: list[tuple[int, RouteGroup, Arrival]] = []
 
     for group in groups:
         group_route = normalize_route_identifier(group.route)
@@ -233,12 +243,12 @@ def earliest_match(
 
 def literal_search(
     predictions: dict[str, list[RouteGroup]], query: str
-) -> list[dict[str, Any]]:
+) -> list[SearchMatch]:
     """Search stop, route, destination, or exact capacity fields."""
 
     needle = query.casefold()
     normalized_route_query = normalize_route_identifier(query)
-    matches: list[dict[str, Any]] = []
+    matches: list[SearchMatch] = []
     for stop_id, groups in predictions.items():
         if stop_id not in KNOWN_STOPS:
             continue

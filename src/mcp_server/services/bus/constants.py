@@ -2,6 +2,8 @@
 
 import os
 
+from mcp_server.services.bus.models import KnownStop, NeighborhoodDestinationRule
+
 
 API_BASE_URL = os.environ.get(
     "BUS_SIGN_API_URL", "https://bus-sign.scottylabs.org"
@@ -10,7 +12,7 @@ PREDICTIONS_PATH = "/predictions"
 REQUEST_TIMEOUT_SECONDS = 10.0
 LOCAL_TIMEZONE = "America/New_York"
 
-KNOWN_STOPS = {
+KNOWN_STOPS: dict[str, KnownStop] = {
     "4407": {
         "name": "Forbes Ave & Morewood Ave (near Tepper Quad)",
         "direction": "inbound",
@@ -34,27 +36,35 @@ KNOWN_STOPS = {
     },
 }
 
-# Manually curated from PRT's published route paths, not derived from API data.
-# Verify against PRT route maps before adding more entries.
-NEIGHBORHOOD_ROUTES = {
+# Interim baseline verified against PRT static GTFS feed Merged_Clever_2606_2.
+# Replace this mapping with the generated GTFS/GIS index in the follow-up PR.
+NEIGHBORHOOD_DESTINATION_AREAS: dict[str, NeighborhoodDestinationRule] = {
     "squirrel hill": {
         "stop_id": "7117",
-        "routes": ["61A", "61B", "61C", "61D"],
-        "note": (
-            "Outbound 61A/61B/61C/61D buses pass through Squirrel Hill "
-            "en route to their listed destinations."
-        ),
+        "areas": [
+            {
+                "key": "forbes_murray",
+                "name": "Forbes Ave & Murray Ave",
+                "target_stop_ids": ["7126"],
+                "routes": ["61A", "61B", "61C", "61D"],
+            },
+            {
+                "key": "wilkins_murray",
+                "name": "Wilkins Ave & Murray Ave",
+                "target_stop_ids": ["7681"],
+                "routes": ["67", "69"],
+            },
+        ],
+        "source": "PRT static GTFS feed Merged_Clever_2606_2",
     }
 }
 
 COVERAGE_NOTE = (
-    "Coverage is currently limited to predictions observed from the bus-sign backend "
-    "for routes 28X, 58, 61A, 61B, 61C, 61D, and 67 across two configured "
-    "stops: stop 4407 — Forbes Ave & Morewood Ave near Tepper Quad, inbound "
-    "toward Downtown/Oakland — and stop 7117 — "
-    "Forbes Ave & Morewood Ave near CUC, outbound toward listed route destinations; "
-    "outbound 61A/61B/61C/61D buses pass through Squirrel Hill. More stops and "
-    "routes may be added later."
+    "Coverage is limited to live predictions returned for two configured stops: "
+    "stop 4407 — Forbes Ave & Morewood Ave near Tepper Quad, inbound toward "
+    "Downtown/Oakland — and stop 7117 — Forbes Ave & Morewood Ave near CUC, "
+    "outbound toward listed route destinations. Routes are taken dynamically "
+    "from the backend and may vary."
 )
 
 CMU_PRT_SOURCE_URL = "https://www.cmu.edu/transportation/transport/prt.html"

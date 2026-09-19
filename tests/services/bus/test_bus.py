@@ -52,6 +52,13 @@ def fetched_predictions() -> FetchedPredictions:
                         Arrival(bus_id="squirrel-hill", seconds=60, capacity="EMPTY")
                     ],
                 ),
+                RouteGroup(
+                    route="67",
+                    destination="FORBES HOSPITAL",
+                    arrivals=[
+                        Arrival(bus_id="route-67", seconds=30, capacity="EMPTY")
+                    ],
+                ),
             ],
         },
         retrieved_at={
@@ -112,24 +119,25 @@ def test_route_normalization_returns_both_directions(
     assert [entry["match"]["minutes"] for entry in result["results"]] == [1, 3]
     assert result["retrieved_at"] == fetched_predictions.retrieved_at
     assert "stop 4407" in result["coverage_note"]
+    assert "Routes are taken dynamically" in result["coverage_note"]
 
 
 @pytest.mark.parametrize(
-    ("arguments", "expected_stop", "expected_route"),
+    ("arguments", "expected_stop", "expected_route", "resolution_type"),
     [
-        ({"destination": "downtown"}, "4407", "61D"),
-        ({"destination": "WATERFRONT"}, "7117", "61D"),
-        ({"neighborhood": "SQUIRREL HILL"}, "7117", "61C"),
+        ({"place": "downtown"}, "4407", "61D", "live_destination"),
+        ({"place": "WATERFRONT"}, "7117", "61D", "live_destination"),
     ],
 )
-def test_destination_and_neighborhood_resolution(
+def test_live_destination_place_resolution(
     monkeypatch: pytest.MonkeyPatch,
     fetched_predictions: FetchedPredictions,
     arguments: dict[str, str],
     expected_stop: str,
     expected_route: str,
+    resolution_type: str,
 ) -> None:
-    """Resolve destination and curated-neighborhood queries to the expected bus."""
+    """Resolve a place against live destinations."""
 
     monkeypatch.setattr(
         bus_app, "fetch_predictions", AsyncMock(return_value=fetched_predictions)
@@ -141,6 +149,35 @@ def test_destination_and_neighborhood_resolution(
     assert result["selection"] == "single_direction"
     assert result["results"][0]["stop"]["stop_id"] == expected_stop
     assert result["results"][0]["match"]["route"] == expected_route
+    assert result["resolution"]["type"] == resolution_type
+
+
+def test_neighborhood_results_are_grouped_by_destination_area(
+    monkeypatch: pytest.MonkeyPatch,
+    fetched_predictions: FetchedPredictions,
+) -> None:
+    """Resolve a place as a neighborhood with distinct destination areas."""
+
+    monkeypatch.setattr(
+        bus_app, "fetch_predictions", AsyncMock(return_value=fetched_predictions)
+    )
+
+    result = asyncio.run(bus_app.get_next_bus.fn(place="SQUIRREL HILL"))
+
+    assert result["status"] == "ok"
+    assert result["selection"] == "per_destination_area"
+    assert result["resolution"]["type"] == "neighborhood"
+    assert [
+        (entry["destination_area"]["name"], entry["match"]["route"])
+        for entry in result["results"]
+    ] == [
+        ("Forbes Ave & Murray Ave", "61C"),
+        ("Wilkins Ave & Murray Ave", "67"),
+    ]
+    assert all(
+        entry["stop"]["name"] == "Forbes Ave & Morewood Ave (near CUC)"
+        for entry in result["results"]
+    )
 
 
 def test_invalid_and_no_match_results(
@@ -159,12 +196,51 @@ def test_invalid_and_no_match_results(
     assert unknown_stop["status"] == conflict["status"] == "input_error"
     assert fetch.await_count == 0
 
-    unknown_place = asyncio.run(bus_app.get_next_bus.fn(neighborhood="waterfront"))
+    unknown_place = asyncio.run(bus_app.get_next_bus.fn(place="greenfield"))
     no_route = asyncio.run(bus_app.get_next_bus.fn(route="999"))
     assert unknown_place["status"] == no_route["status"] == "no_match"
-    assert unknown_place["results"] == []
+    assert unknown_place["resolution"]["type"] == "live_destination"
+    assert len(unknown_place["results"]) == 2
+    assert "available.predictions" in unknown_place["message"]
+    fallback_predictions = unknown_place["available"]["predictions"]
+    assert fallback_predictions["4407"][0]["route"] == "61D"
+    assert {group["route"] for group in fallback_predictions["7117"]} == {
+        "61C",
+        "61D",
+        "67",
+    }
     assert len(no_route["results"]) == 2
     assert all(entry["match"] is None for entry in no_route["results"])
+
+
+def test_route_and_neighborhood_match_uses_verified_baseline(
+    monkeypatch: pytest.MonkeyPatch,
+    fetched_predictions: FetchedPredictions,
+) -> None:
+    """Allow a live route verified to reach the requested neighborhood."""
+
+    monkeypatch.setattr(
+        bus_app, "fetch_predictions", AsyncMock(return_value=fetched_predictions)
+    )
+
+    result = asyncio.run(
+        bus_app.get_next_bus.fn(route="67", place="squirrel hill")
+    )
+
+    assert result["status"] == "ok"
+    assert result["selection"] == "single_direction"
+    assert result["results"][0]["match"]["route"] == "67"
+    assert result["results"][0]["match"]["minutes"] == 1
+    assert result["results"][0]["stop"]["name"].endswith("(near CUC)")
+    assert result["results"][0]["destination_area"]["name"] == (
+        "Wilkins Ave & Murray Ave"
+    )
+    context = result["resolution"]["route_context"]
+    assert context["serves_destination_area"]["name"] == "Wilkins Ave & Murray Ave"
+    assert context["does_not_serve_destination_areas"][0]["name"] == (
+        "Forbes Ave & Murray Ave"
+    )
+    assert context["alternatives"][0]["routes"] == ["61A", "61B", "61C", "61D"]
 
 
 @pytest.mark.parametrize("failure", ["http", "json", "schema", "network"])
