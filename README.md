@@ -8,6 +8,7 @@ This project provides MCP tools for:
 
 - **CMU Dining (Eats)**: Query dining locations, hours, menus, and real-time availability
 - **CMU Maps**: Search buildings, get directions, and calculate distances on campus
+- **CMU Bus Sign**: Query live bus predictions and CMU PRT rider guidance
 
 Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modular architecture that allows mounting multiple sub-services with namespace prefixes.
 
@@ -30,6 +31,13 @@ Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modu
 - Get paths between two locations
 - Calculate distances between locations
 - List possible location matches for queries
+
+### CMU Bus Sign Service (`bus`)
+
+- Get live predictions for the configured Forbes/Morewood stops
+- Find the next bus by stop, route, direction, or place
+- Search current predictions by stop, route, destination, or capacity
+- Explain how eligible CMU students use the PRT Ready2Ride benefit
 
 ## Installation
 
@@ -96,6 +104,9 @@ python src/mcp_server/services/eats/app.py
 
 # Run only the maps service
 python src/mcp_server/services/maps/app.py
+
+# Run only the bus service
+python src/mcp_server/services/bus/app.py
 ```
 
 ### Available Tools
@@ -116,17 +127,27 @@ python src/mcp_server/services/maps/app.py
 - `list_possible_locations(query)`: List location name matches
 - `distance_between(start_id, end_id)`: Calculate distance in meters
 
+#### Bus Tools (prefix: `bus`)
+
+- `get_bus_predictions()`: Get live predictions for both configured bus stops
+- `get_stop_predictions(stop_id)`: Get predictions for one configured stop
+- `get_next_bus(stop_id, route, place, direction)`: Find the next matching bus
+- `search_bus_predictions(query)`: Search current predictions by stop, route, destination, or capacity
+- `get_cmu_prt_rider_guide()`: Explain how CMU PRT Ready2Ride works
+
 ## Configuration
 
 ### API Endpoints
 
 - **Dining API**: `https://dining.apis.scottylabs.org`
 - **Maps API**: `https://rust.api.maps.scottylabs.org`
+- **Bus Sign API**: `https://bus-sign.scottylabs.org`
 
 Endpoints are configured in:
 
 - `src/mcp_server/services/eats/constants.py`
 - `src/mcp_server/services/maps/app.py`
+- `src/mcp_server/services/bus/constants.py`
 
 ### Server Configuration
 
@@ -163,6 +184,16 @@ This allows:
 - Namespace isolation via prefixes
 - Easy addition of new services
 - Running services independently or combined
+
+### Testing
+
+Run the test suite with:
+
+```bash
+uv run pytest
+```
+
+Add focused tests under `tests/` as services are developed.
 
 ### Adding a New Service
 

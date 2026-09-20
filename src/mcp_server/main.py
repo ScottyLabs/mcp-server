@@ -13,6 +13,7 @@ from mcp_server.services.eats.app import mcp as eats_mcp
 from mcp_server.services.maps.app import app as maps_mcp
 from mcp_server.services.courses.app import app as courses_mcp
 from mcp_server.services.guide.app import app as guide_mcp
+from mcp_server.services.bus.app import mcp as bus_mcp
 
 from starlette.responses import JSONResponse
 
@@ -27,6 +28,7 @@ def main():
     main_mcp.mount(maps_mcp, prefix="maps")
     main_mcp.mount(courses_mcp, prefix="courses")
     main_mcp.mount(guide_mcp, prefix="guide")
+    main_mcp.mount(bus_mcp, prefix="bus")
 
     # Run the composed MCP server
     # main_mcp.run() - attempt deployment
