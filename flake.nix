@@ -1,51 +1,60 @@
 {
   description = "Scotty Labs MCPs for CMU";
+
   nixConfig = {
     extra-substituters = [ "https://scottylabs.cachix.org" ];
     extra-trusted-public-keys = [
       "scottylabs.cachix.org-1:hajjEX5SLi/Y7yYloiXTt2IOr3towcTGRhMh1vu6Tjg="
     ];
   };
+
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    scottylabs = {
-      url = "git+https://git.cmu.dev/ScottyLabs/kennel";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    scottylabs.url = "git+https://git.cmu.dev/ScottyLabs/kennel";
+    nixpkgs.follows = "scottylabs/nixpkgs";
+    flake-parts.follows = "scottylabs/flake-parts";
   };
 
   outputs =
-    {
-      nixpkgs,
-      scottylabs,
-      ...
-    }:
-    let
-      supportedSystems = [
+    inputs:
+    inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [ inputs.scottylabs.flakeModules.default ];
+      systems = [
         "x86_64-linux"
         "aarch64-linux"
+        "aarch64-darwin"
       ];
-      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-    in
 
-    {
-      packages = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-          venv = (scottylabs.mkLib pkgs).buildPythonService {
-            src = ./.;
-            python = pkgs.python313;
-          };
-          api = pkgs.runCommand "mcp-server-api" { meta.mainProgram = "mcp-server"; } ''
-            mkdir -p $out/bin
-            ln -s ${venv}/bin/mcp-server $out/bin/mcp-server
-          '';
-        in
+      perSystem =
         {
-          inherit api;
-          default = api;
-        }
-      );
+          pkgs,
+          lib,
+          helpers,
+          ...
+        }:
+        {
+          scottylabs = {
+            project.name = "mcp-server";
+
+            python = {
+              enable = true;
+              package = pkgs.python313;
+            };
+
+            processes.api = {
+              run = "PORT=5050 exec uv run python src/mcp_server/main.py";
+              ready = "${lib.getExe pkgs.curl} -sf http://localhost:5050/api/health";
+            };
+          };
+
+          services.api = {
+            package = lib.addMetaAttrs { mainProgram = "mcp-server"; } (
+              helpers.buildPythonService {
+                src = ./.;
+                python = pkgs.python313;
+              }
+            );
+            customDomain = "api.mcp-server.scottylabs.org";
+          };
+        };
     };
 }

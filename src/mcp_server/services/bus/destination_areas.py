@@ -50,10 +50,7 @@ def destination_area_for_route(
             area
             for area in rule["areas"]
             if normalized_route
-            in {
-                normalize_route_identifier(candidate)
-                for candidate in area["routes"]
-            }
+            in {normalize_route_identifier(candidate) for candidate in area["routes"]}
         ),
         None,
     )
@@ -81,9 +78,7 @@ def build_route_context(
             }
             for area in other_areas
         ],
-        "alternatives": [
-            serialize_destination_area(area) for area in other_areas
-        ],
+        "alternatives": [serialize_destination_area(area) for area in other_areas],
     }
 
 
@@ -134,8 +129,7 @@ def build_destination_area_results(
         }
         if match is None:
             entry["message"] = (
-                "No current prediction is available for routes serving "
-                f"{area['name']}."
+                f"No current prediction is available for routes serving {area['name']}."
             )
         results.append(entry)
     return results

@@ -9,13 +9,18 @@ from fastmcp import FastMCP
 # Only these paths in the repo hold actual guide content; the rest is site framework/config.
 CONTENT_ROOTS = ("src/pages", "README.md")
 
-TREE_URL = f"https://api.github.com/repos/ScottyLabs/cmu-guide/git/trees/main?recursive=1"
-RAW_URL = f"https://raw.githubusercontent.com/ScottyLabs/cmu-guide/main/{{path}}"
-BLOB_URL = f"https://github.com/ScottyLabs/cmu-guide/blob/main/{{path}}"
+TREE_URL = (
+    "https://api.github.com/repos/ScottyLabs/cmu-guide/git/trees/main?recursive=1"
+)
+RAW_URL = "https://raw.githubusercontent.com/ScottyLabs/cmu-guide/main/{path}"
+BLOB_URL = "https://github.com/ScottyLabs/cmu-guide/blob/main/{path}"
 
 TIMEOUT = aiohttp.ClientTimeout(total=15)
 CACHE_TTL_SECONDS = 24 * 60 * 60  # 24h
-GITHUB_HEADERS = {"Accept": "application/vnd.github+json", "User-Agent": "cmu-guide-mcp"}
+GITHUB_HEADERS = {
+    "Accept": "application/vnd.github+json",
+    "User-Agent": "cmu-guide-mcp",
+}
 if os.environ.get("GITHUB_TOKEN"):
     GITHUB_HEADERS["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
 
@@ -67,7 +72,9 @@ class GuideIndex:
             for p in paths:
                 raw = await _fetch_raw(session, p)
                 title, description, body = _parse_frontmatter(p, raw)
-                pages.append(Page(path=p, title=title, description=description, raw_content=raw))
+                pages.append(
+                    Page(path=p, title=title, description=description, raw_content=raw)
+                )
                 chunks.extend(_chunk_markdown(p, title, body))
         self.pages = pages
         self.chunks = chunks
@@ -106,6 +113,7 @@ _index = GuideIndex()
 
 # --- Internal HTTP / parsing helpers ---
 
+
 async def _fetch_content_paths(session: aiohttp.ClientSession) -> list[str]:
     async with session.get(TREE_URL, headers=GITHUB_HEADERS, ssl=False) as resp:
         resp.raise_for_status()
@@ -116,7 +124,11 @@ async def _fetch_content_paths(session: aiohttp.ClientSession) -> list[str]:
         if entry.get("type") == "blob"
         and (entry["path"].endswith(".md") or entry["path"].endswith(".mdx"))
     ]
-    return [p for p in paths if any(p == root or p.startswith(root + "/") for root in CONTENT_ROOTS)]
+    return [
+        p
+        for p in paths
+        if any(p == root or p.startswith(root + "/") for root in CONTENT_ROOTS)
+    ]
 
 
 async def _fetch_raw(session: aiohttp.ClientSession, path: str) -> str:
@@ -131,7 +143,7 @@ def _parse_frontmatter(path: str, raw: str) -> tuple[str, str, str]:
     body = raw
     match = FRONTMATTER_RE.match(raw)
     if match:
-        body = raw[match.end():]
+        body = raw[match.end() :]
         for line in match.group(1).splitlines():
             if line.startswith("title:"):
                 title = line.split(":", 1)[1].strip().strip("'\"")
@@ -181,10 +193,11 @@ def _truncate(text: str, max_len: int = 600) -> str:
 
 # --- MCP Tools ---
 
+
 @app.tool()
 async def search_guide(query: str, limit: int = 5) -> list[dict]:
     """
-    Full-text search over the ScottyLabs cmu-guide (cmu.guide) — dorms, meal plans, leaves of
+    Full-text search over the ScottyLabs cmu-guide (cmu.guide) \u2014 dorms, meal plans, leaves of
     absence, transferring majors, accommodations, etc. Returns short snippets with a chunk_id
     and source file for each match. Use get_section or get_page to pull the full text of a
     specific result once you know which one you need; don't load whole pages up front.
@@ -226,7 +239,9 @@ async def get_page(path: str) -> dict:
     await _index.ensure_loaded()
     page = _index.get_page(path)
     if page is None:
-        return {"error": f'No page found at "{path}". Use list_pages to see valid paths.'}
+        return {
+            "error": f'No page found at "{path}". Use list_pages to see valid paths.'
+        }
     return {"path": page.path, "title": page.title, "content": page.raw_content}
 
 
@@ -235,7 +250,10 @@ async def list_pages() -> list[dict]:
     """List every page in the cmu-guide with its title, description, and repo path. Good
     starting point to see what topics are covered before searching or fetching."""
     await _index.ensure_loaded()
-    return [{"path": p.path, "title": p.title, "description": p.description} for p in _index.pages]
+    return [
+        {"path": p.path, "title": p.title, "description": p.description}
+        for p in _index.pages
+    ]
 
 
 @app.tool()

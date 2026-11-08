@@ -4,7 +4,6 @@ import os
 
 from mcp_server.services.bus.models import KnownStop, NeighborhoodDestinationRule
 
-
 API_BASE_URL = os.environ.get(
     "BUS_SIGN_API_URL", "https://bus-sign.scottylabs.org"
 ).rstrip("/")
@@ -61,8 +60,8 @@ NEIGHBORHOOD_DESTINATION_AREAS: dict[str, NeighborhoodDestinationRule] = {
 
 COVERAGE_NOTE = (
     "Coverage is limited to live predictions returned for two configured stops: "
-    "stop 4407 — Forbes Ave & Morewood Ave near Tepper Quad, inbound toward "
-    "Downtown/Oakland — and stop 7117 — Forbes Ave & Morewood Ave near CUC, "
+    "stop 4407 \u2014 Forbes Ave & Morewood Ave near Tepper Quad, inbound toward "
+    "Downtown/Oakland \u2014 and stop 7117 \u2014 Forbes Ave & Morewood Ave near CUC, "
     "outbound toward listed route destinations. Routes are taken dynamically "
     "from the backend and may vary."
 )

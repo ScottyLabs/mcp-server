@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import math
 import re
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -54,10 +54,10 @@ def predictions_url() -> str:
 def retrieval_metadata(instant: datetime | None = None) -> RetrievalMetadata:
     """Build UTC-canonical and Pittsburgh-local retrieval metadata."""
 
-    retrieved = instant or datetime.now(timezone.utc)
+    retrieved = instant or datetime.now(UTC)
     if retrieved.tzinfo is None:
-        retrieved = retrieved.replace(tzinfo=timezone.utc)
-    retrieved_utc = retrieved.astimezone(timezone.utc)
+        retrieved = retrieved.replace(tzinfo=UTC)
+    retrieved_utc = retrieved.astimezone(UTC)
     retrieved_local = retrieved_utc.astimezone(ZoneInfo(LOCAL_TIMEZONE))
     hour = retrieved_local.strftime("%I").lstrip("0") or "12"
     local_display = (
@@ -179,11 +179,7 @@ def serialize_predictions(
 def has_arrivals(predictions: dict[str, list[RouteGroup]]) -> bool:
     """Return whether any predicted bus arrivals are available."""
 
-    return any(
-        group.arrivals
-        for groups in predictions.values()
-        for group in groups
-    )
+    return any(group.arrivals for groups in predictions.values() for group in groups)
 
 
 def available_predictions(
@@ -221,7 +217,10 @@ def earliest_match(
         group_route = normalize_route_identifier(group.route)
         if normalized_route and group_route != normalized_route:
             continue
-        if destination_folded and destination_folded not in group.destination.casefold():
+        if (
+            destination_folded
+            and destination_folded not in group.destination.casefold()
+        ):
             continue
         if normalized_allowed and group_route not in normalized_allowed:
             continue

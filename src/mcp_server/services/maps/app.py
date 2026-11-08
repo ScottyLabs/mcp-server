@@ -9,32 +9,36 @@ app = FastMCP("rust-maps-proxy")
 
 # --- Internal HTTP functions ---
 
+
 async def _search_buildings_http(query: str) -> list[dict]:
-    async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
-        async with session.get(f"{BASE_URL}/search", params={"query": query}, ssl=False) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-            # Normalize to always return a list
-            if isinstance(data, dict):
-                return data.get("results", []) or []
-            elif isinstance(data, list):
-                return data
-            else:
-                return []
+    async with (
+        aiohttp.ClientSession(timeout=TIMEOUT) as session,
+        session.get(f"{BASE_URL}/search", params={"query": query}, ssl=False) as resp,
+    ):
+        resp.raise_for_status()
+        data = await resp.json()
+        # Normalize to always return a list
+        if isinstance(data, dict):
+            return data.get("results", []) or []
+        elif isinstance(data, list):
+            return data
+        else:
+            return []
 
 
 async def _get_path_http(start_id: str, end_id: str) -> dict:
-    async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
-        async with session.get(
-            f"{BASE_URL}/path",
-            params={"start": start_id, "end": end_id},
-            ssl=False
-        ) as resp:
-            resp.raise_for_status()
-            return await resp.json()
+    async with (
+        aiohttp.ClientSession(timeout=TIMEOUT) as session,
+        session.get(
+            f"{BASE_URL}/path", params={"start": start_id, "end": end_id}, ssl=False
+        ) as resp,
+    ):
+        resp.raise_for_status()
+        return await resp.json()
 
 
 # --- Tools ---
+
 
 @app.tool()
 async def search_buildings(query: str) -> dict:

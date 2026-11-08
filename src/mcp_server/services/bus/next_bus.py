@@ -144,9 +144,7 @@ def resolve_place(query: NextBusQuery) -> ResolvedPlace:
                 "type": "live_destination",
                 "input": query.place,
                 "destination": query.place,
-                "note": (
-                    "Searched against live route destinations."
-                ),
+                "note": ("Searched against live route destinations."),
             }
 
     return ResolvedPlace(
@@ -183,8 +181,7 @@ def validate_resolved_place(
             return QueryError(
                 code="conflicting_filters",
                 message=(
-                    f"Stop {effective_stop} is {stop_direction}, "
-                    f"not {query.direction}."
+                    f"Stop {effective_stop} is {stop_direction}, not {query.direction}."
                 ),
                 details={"known_stops": known_stops_list()},
             )
@@ -196,9 +193,7 @@ def _availability(fetched: FetchedPredictions) -> Availability:
 
     return {
         "stops": known_stops_list(),
-        "routes_and_destinations_by_stop": available_predictions(
-            fetched.predictions
-        ),
+        "routes_and_destinations_by_stop": available_predictions(fetched.predictions),
         "predictions": serialize_predictions(fetched.predictions),
     }
 

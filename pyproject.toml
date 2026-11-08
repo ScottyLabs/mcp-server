@@ -1,21 +1,19 @@
 [project]
 name = "mcp-server"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server for ScottyLabs' CMU services"
 readme = "README.md"
 authors = [{ name = "Parinthapat Pengpun", email = "parinzee@protonmail.com" }]
 requires-python = ">=3.11,<4.0"
 dependencies = [
-    "fastmcp>=2.12.3",
-    "aiohttp>=3.12.15,<4.0.0",
-    "httpx>=0.28.1,<1.0.0",
-    "pydantic>=2.11.9,<3.0.0",
+  "fastmcp>=4.1.6",
+  "aiohttp>=3.12.15,<4.0.0",
+  "httpx>=0.28.1,<1.0.0",
+  "pydantic>=2.11.9,<3.0.0",
 ]
 
 [dependency-groups]
-dev = [
-    "pytest>=8,<9",
-]
+dev = ["pytest>=9.0.3"]
 
 [project.scripts]
 mcp-server = "mcp_server.main:main"

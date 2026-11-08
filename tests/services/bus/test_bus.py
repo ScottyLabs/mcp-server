@@ -32,9 +32,7 @@ def fetched_predictions() -> FetchedPredictions:
                 RouteGroup(
                     route="61D",
                     destination="DOWNTOWN",
-                    arrivals=[
-                        Arrival(bus_id="inbound", seconds=59, capacity="EMPTY")
-                    ],
+                    arrivals=[Arrival(bus_id="inbound", seconds=59, capacity="EMPTY")],
                 )
             ],
             "7117": [
@@ -55,9 +53,7 @@ def fetched_predictions() -> FetchedPredictions:
                 RouteGroup(
                     route="67",
                     destination="FORBES HOSPITAL",
-                    arrivals=[
-                        Arrival(bus_id="route-67", seconds=30, capacity="EMPTY")
-                    ],
+                    arrivals=[Arrival(bus_id="route-67", seconds=30, capacity="EMPTY")],
                 ),
             ],
         },
@@ -79,9 +75,7 @@ def test_fetch_predictions_validates_and_enriches_response() -> None:
             {
                 "route": "61D",
                 "destination": "WATERFRONT",
-                "arrivals": [
-                    {"bus_id": "3507", "seconds": 121, "capacity": "EMPTY"}
-                ],
+                "arrivals": [{"bus_id": "3507", "seconds": 121, "capacity": "EMPTY"}],
             }
         ]
     }
@@ -108,7 +102,7 @@ def test_route_normalization_returns_both_directions(
         bus_app, "fetch_predictions", AsyncMock(return_value=fetched_predictions)
     )
 
-    result = asyncio.run(bus_app.get_next_bus.fn(route="61 d"))
+    result = asyncio.run(bus_app.get_next_bus(route="61 d"))
 
     assert result["status"] == "ok"
     assert result["selection"] == "per_direction"
@@ -143,7 +137,7 @@ def test_live_destination_place_resolution(
         bus_app, "fetch_predictions", AsyncMock(return_value=fetched_predictions)
     )
 
-    result = asyncio.run(bus_app.get_next_bus.fn(**arguments))
+    result = asyncio.run(bus_app.get_next_bus(**arguments))
 
     assert result["status"] == "ok"
     assert result["selection"] == "single_direction"
@@ -162,7 +156,7 @@ def test_neighborhood_results_are_grouped_by_destination_area(
         bus_app, "fetch_predictions", AsyncMock(return_value=fetched_predictions)
     )
 
-    result = asyncio.run(bus_app.get_next_bus.fn(place="SQUIRREL HILL"))
+    result = asyncio.run(bus_app.get_next_bus(place="SQUIRREL HILL"))
 
     assert result["status"] == "ok"
     assert result["selection"] == "per_destination_area"
@@ -189,15 +183,13 @@ def test_invalid_and_no_match_results(
     fetch = AsyncMock(return_value=fetched_predictions)
     monkeypatch.setattr(bus_app, "fetch_predictions", fetch)
 
-    unknown_stop = asyncio.run(bus_app.get_next_bus.fn(stop_id="9999"))
-    conflict = asyncio.run(
-        bus_app.get_next_bus.fn(stop_id="4407", direction="outbound")
-    )
+    unknown_stop = asyncio.run(bus_app.get_next_bus(stop_id="9999"))
+    conflict = asyncio.run(bus_app.get_next_bus(stop_id="4407", direction="outbound"))
     assert unknown_stop["status"] == conflict["status"] == "input_error"
     assert fetch.await_count == 0
 
-    unknown_place = asyncio.run(bus_app.get_next_bus.fn(place="greenfield"))
-    no_route = asyncio.run(bus_app.get_next_bus.fn(route="999"))
+    unknown_place = asyncio.run(bus_app.get_next_bus(place="greenfield"))
+    no_route = asyncio.run(bus_app.get_next_bus(route="999"))
     assert unknown_place["status"] == no_route["status"] == "no_match"
     assert unknown_place["resolution"]["type"] == "live_destination"
     assert len(unknown_place["results"]) == 2
@@ -223,9 +215,7 @@ def test_route_and_neighborhood_match_uses_verified_baseline(
         bus_app, "fetch_predictions", AsyncMock(return_value=fetched_predictions)
     )
 
-    result = asyncio.run(
-        bus_app.get_next_bus.fn(route="67", place="squirrel hill")
-    )
+    result = asyncio.run(bus_app.get_next_bus(route="67", place="squirrel hill"))
 
     assert result["status"] == "ok"
     assert result["selection"] == "single_direction"
@@ -276,14 +266,16 @@ def test_backend_errors(failure: str) -> None:
 def test_tools_are_registered_and_rider_guide_is_sourced() -> None:
     """Register the public bus tools and preserve the rider guide's official source."""
 
-    tools = asyncio.run(bus_app.mcp.get_tools())
+    tools = asyncio.run(bus_app.mcp.list_tools())
 
-    assert set(tools) == {
+    assert {tool.name for tool in tools} == {
         "get_bus_predictions",
         "get_cmu_prt_rider_guide",
         "get_next_bus",
         "get_stop_predictions",
         "search_bus_predictions",
     }
-    guide = asyncio.run(tools["get_cmu_prt_rider_guide"].fn())
-    assert guide["source_url"] == "https://www.cmu.edu/transportation/transport/prt.html"
+    guide = asyncio.run(bus_app.get_cmu_prt_rider_guide())
+    assert (
+        guide["source_url"] == "https://www.cmu.edu/transportation/transport/prt.html"
+    )

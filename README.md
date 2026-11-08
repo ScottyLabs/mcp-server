@@ -9,6 +9,8 @@ This project provides MCP tools for:
 - **CMU Dining (Eats)**: Query dining locations, hours, menus, and real-time availability
 - **CMU Maps**: Search buildings, get directions, and calculate distances on campus
 - **CMU Bus Sign**: Query live bus predictions and CMU PRT rider guidance
+- **CMU Courses**: Look up courses, requisites, instructors, and gen eds
+- **CMU Guide**: Search and read the [cmu-guide](https://github.com/ScottyLabs/cmu-guide) pages
 
 Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modular architecture that allows mounting multiple sub-services with namespace prefixes.
 
@@ -41,57 +43,25 @@ Built with [FastMCP](https://github.com/jlowin/fastmcp), this server uses a modu
 
 ## Installation
 
-### Prerequisites
+Install Lix by following kennel's [local development guide](https://docs.kennel.scottylabs.org/guides/local-development/#installing-nix), then clone the repository, enter the dev shell, and start the server:
 
-- Python 3.11 or higher
-- [uv](https://github.com/astral-sh/uv) or [Poetry](https://python-poetry.org/) package manager
-- Docker (optional, for containerized deployment)
-
-### Using UV (recommended)
-
-```bash
-# Install dependencies
-uv sync
-
-# Activate virtual environment
-source .venv/bin/activate
+```sh
+git clone ssh://forgejo@git.cmu.dev/ScottyLabs/mcp-server.git
+cd mcp-server
+nix develop
+pitchfork start --local
 ```
 
-### Using Poetry
-
-```bash
-# Install dependencies
-poetry install
-
-# Activate virtual environment
-poetry shell
-```
-
-### Using Docker
-
-```bash
-# Build the Docker image
-docker build -t mcp-server .
-
-# Run the container
-docker run -p 8000:8000 mcp-server
-
-# Or use docker-compose (if you create a docker-compose.yml)
-docker-compose up
-```
+The dev shell provides Python 3.13 and uv and syncs the virtual environment on entry.
 
 ## Usage
 
 ### Running the Server
 
-The server runs on HTTP transport by default on `0.0.0.0:8001`:
+`pitchfork start --local` runs the server on port 5050. To run it yourself, use the `mcp-server` script, which serves streamable HTTP on `0.0.0.0` at `PORT` (default `5050`):
 
 ```bash
-# Run as module
-python -m mcp_server
-
-# Or run directly
-python src/mcp_server/__init__.py
+uv run mcp-server
 ```
 
 ### Using Individual Services
@@ -107,6 +77,12 @@ python src/mcp_server/services/maps/app.py
 
 # Run only the bus service
 python src/mcp_server/services/bus/app.py
+
+# Run only the courses service
+python src/mcp_server/services/courses/app.py
+
+# Run only the guide service
+python src/mcp_server/services/guide/app.py
 ```
 
 ### Available Tools
@@ -139,22 +115,26 @@ python src/mcp_server/services/bus/app.py
 
 ### API Endpoints
 
-- **Dining API**: `https://dining.apis.scottylabs.org`
+- **Dining API**: `https://cmueats.com/v2/locations`
 - **Maps API**: `https://rust.api.maps.scottylabs.org`
-- **Bus Sign API**: `https://bus-sign.scottylabs.org`
+- **Bus Sign API**: `https://bus-sign.scottylabs.org`, overridable with `BUS_SIGN_API_URL`
+- **Courses API**: `https://course-tools.apis.scottylabs.org`
+- **Guide**: the `ScottyLabs/cmu-guide` repository on GitHub, read with `GITHUB_TOKEN` when set
 
 Endpoints are configured in:
 
 - `src/mcp_server/services/eats/constants.py`
 - `src/mcp_server/services/maps/app.py`
 - `src/mcp_server/services/bus/constants.py`
+- `src/mcp_server/services/courses/app.py`
+- `src/mcp_server/services/guide/app.py`
 
 ### Server Configuration
 
-The main server configuration is in `src/mcp_server/__init__.py`:
+The main server configuration is in `src/mcp_server/main.py`:
 
 - Host: `0.0.0.0`
-- Port: `8000`
+- Port: `PORT`, default `5050`
 - Transport: `http` (streamable HTTP transport)
 
 ### CORS Configuration
@@ -176,7 +156,7 @@ The project uses a compositional architecture:
 
 1. **Base App** (`core/app.py`): Defines the main FastMCP instance
 1. **Services** (`services/`): Individual MCP services with their own tools
-1. **Main Composition** (`main.py`): Mounts services with prefixes to avoid conflicts
+1. **Main Composition** (`main.py`): Mounts services under namespaces to avoid conflicts
 
 This allows:
 
@@ -204,17 +184,8 @@ Add focused tests under `tests/` as services are developed.
 ```python
 from mcp_server.services.your_service.app import mcp as your_mcp
 
-main_mcp.mount(your_mcp, prefix="your_service")
+main_mcp.mount(your_mcp, namespace="your_service")
 ```
-
-### Dependencies
-
-Core dependencies:
-
-- `fastmcp>=2.12.3`: MCP framework
-- `aiohttp>=3.12.15`: Async HTTP client
-- `httpx`: HTTP client for async requests
-- `pydantic`: Data validation and models
 
 ## Data Models
 
@@ -242,8 +213,8 @@ Core dependencies:
 
 All dining tools return formatted Markdown with:
 
-- Status indicators (=� open, =4 closed)
-- Online ordering indicators (=�)
+- Status indicators (🟢 open, 🔴 closed, ⚪ unknown)
+- Online ordering indicators (📱)
 - Grouped by cuisine type
 - 12-hour time format
 - Consecutive day grouping for hours

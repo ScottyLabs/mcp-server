@@ -1,2 +1,2 @@
 # Configuration
-API_BASE_URL = "https://api.cmueats.com/v2/locations"
+API_BASE_URL = "https://cmueats.com/v2/locations"

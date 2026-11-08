@@ -30,7 +30,6 @@ from mcp_server.services.bus.utils import (
     stop_metadata,
 )
 
-
 mcp = FastMCP("CMU Bus Sign", version="0.1.0")
 
 

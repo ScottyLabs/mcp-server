@@ -5,15 +5,20 @@ Provides tools to query Carnegie Mellon University dining locations, hours, and 
 """
 
 from datetime import datetime, timedelta
+
 from fastmcp import FastMCP
 
 from mcp_server.services.eats.utils import (
-    fetch_locations, is_location_open_now, format_times_for_display,
-    format_locations_list_markdown, format_location_markdown
+    fetch_locations,
+    format_location_markdown,
+    format_locations_list_markdown,
+    format_times_for_display,
+    is_location_open_now,
 )
 
 # Initialize FastMCP server
 mcp = FastMCP("CMU Dining", version="0.1.0")
+
 
 @mcp.tool()
 async def get_all_dining_locations() -> str:
@@ -27,6 +32,7 @@ async def get_all_dining_locations() -> str:
     raw_locations = await fetch_locations()
     return format_locations_list_markdown(raw_locations, "All CMU Dining Locations")
 
+
 @mcp.tool()
 async def search_dining_locations(name_query: str) -> str:
     """
@@ -39,17 +45,21 @@ async def search_dining_locations(name_query: str) -> str:
     """
     # Fetch all locations and filter locally since the new API returns all locations
     raw_locations = await fetch_locations()
-    
+
     # Filter locations by name query
     matching_locations = [
-        loc for loc in raw_locations 
+        loc
+        for loc in raw_locations
         if name_query.lower() in loc.get("name", "").lower()
     ]
-    
+
     if not matching_locations:
         return f"# Search Results for '{name_query}'\n\nNo dining locations found matching '{name_query}'."
 
-    return format_locations_list_markdown(matching_locations, f"Search Results for '{name_query}'")
+    return format_locations_list_markdown(
+        matching_locations, f"Search Results for '{name_query}'"
+    )
+
 
 @mcp.tool()
 async def get_locations_open_now() -> str:
@@ -60,17 +70,17 @@ async def get_locations_open_now() -> str:
     Locations are grouped by cuisine type for easy browsing.
     """
     raw_locations = await fetch_locations()
-    
+
     # Filter to only open locations
     open_locations = [
-        loc for loc in raw_locations 
-        if is_location_open_now(loc.get("times", []))
+        loc for loc in raw_locations if is_location_open_now(loc.get("times", []))
     ]
-    
+
     if not open_locations:
         return "# Currently Open Locations\n\nNo dining locations are currently open."
 
     return format_locations_list_markdown(open_locations, "Currently Open Locations")
+
 
 @mcp.tool()
 async def get_locations_open_at_time(day: int, hour: int, minute: int = 0) -> str:
@@ -92,11 +102,19 @@ async def get_locations_open_at_time(day: int, hour: int, minute: int = 0) -> st
     if not (0 <= minute <= 59):
         raise ValueError("Minute must be between 0 and 59")
 
-    days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    days = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    ]
     time_str = f"{hour:02d}:{minute:02d}"
 
     raw_locations = await fetch_locations()
-    
+
     # Calculate target timestamp for the specified day/time
     now = datetime.now()
     # Convert API day format (0=Sunday) to Python weekday (0=Monday)
@@ -107,7 +125,7 @@ async def get_locations_open_at_time(day: int, hour: int, minute: int = 0) -> st
     target_date = now + timedelta(days=days_ahead)
     target_dt = target_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
     target_timestamp_ms = int(target_dt.timestamp() * 1000)
-    
+
     # Filter locations open at the specified time
     open_locations = []
     for loc in raw_locations:
@@ -118,11 +136,14 @@ async def get_locations_open_at_time(day: int, hour: int, minute: int = 0) -> st
             if start_ms <= target_timestamp_ms < end_ms:
                 open_locations.append(loc)
                 break
-    
+
     if not open_locations:
         return f"# Locations Open on {days[day]} at {time_str}\n\nNo dining locations are open at this time."
 
-    return format_locations_list_markdown(open_locations, f"Locations Open on {days[day]} at {time_str}")
+    return format_locations_list_markdown(
+        open_locations, f"Locations Open on {days[day]} at {time_str}"
+    )
+
 
 @mcp.tool()
 async def get_location_hours(location_name: str) -> str:
@@ -171,6 +192,7 @@ async def get_location_hours(location_name: str) -> str:
 
     return f"# Location Details\n\n{location_md}"
 
+
 @mcp.tool()
 async def get_locations_by_cuisine(cuisine_query: str) -> str:
     """
@@ -192,15 +214,20 @@ async def get_locations_by_cuisine(cuisine_query: str) -> str:
         description = raw_location.get("description", "").lower()
 
         # Search in name, short description, and full description
-        if (cuisine_lower in name or
-            cuisine_lower in short_desc or
-            cuisine_lower in description):
+        if (
+            cuisine_lower in name
+            or cuisine_lower in short_desc
+            or cuisine_lower in description
+        ):
             matching_locations.append(raw_location)
 
     if not matching_locations:
         return f"# Cuisine Search for '{cuisine_query}'\n\nNo dining locations found serving '{cuisine_query}' cuisine."
 
-    return format_locations_list_markdown(matching_locations, f"Locations Serving '{cuisine_query.title()}' Cuisine")
+    return format_locations_list_markdown(
+        matching_locations, f"Locations Serving '{cuisine_query.title()}' Cuisine"
+    )
+
 
 if __name__ == "__main__":
     # Run the MCP server
