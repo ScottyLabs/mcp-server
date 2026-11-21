@@ -1,7 +1,8 @@
 import aiohttp
 from fastmcp import FastMCP
 
-BASE_URL = "https://course-tools.apis.scottylabs.org"
+BASE_URL = "https://course.apis.scottylabs.org"
+
 TIMEOUT = aiohttp.ClientTimeout(total=10)
 
 app = FastMCP("cmucourses-proxy")
